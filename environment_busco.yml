@@ -2,7 +2,7 @@ name: BUSCO10_ENV
 channels:
 - conda-forge
 - bioconda
-- defaltus 
+- defaults 
 dependencies:
   - python=3.10
   - busco=5.10.0  # versão mais recente compatível com odb10
