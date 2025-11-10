@@ -16,7 +16,7 @@ O objetivo é realizar o processo de **sequenciação, montagem e anotação gen
 Para preparar o ambiente de trabalho, foi desenvolvido o script **`go.sh`**, que funciona como o **ponto de entrada principal** do projeto.  
 Este script é responsável por:
 
-#### 1. Criar o ambiente Conda chamado **`TP1_ao_gc`** (*Trabalho Prático 1 — Adriana Oliveira e Gonçalo Cruz*).  
+#### 1. Criar o ambiente Conda chamado **`TP1_ao_gc`** (Trabalho Prático 1 — Adriana Oliveira e Gonçalo Cruz) e o ambiente **`BUSCO10_ENV`** (criado para as incompatibilidades do BUSCO com as outras ferramentas)/
 #### 2. Instalar automaticamente todas as ferramentas necessárias como: FastQC (QC), SPAdes/Flye/Unicycler (Montadores), QUAST/BUSCO (Avaliação), Prokka (Anotação).
 #### 3. Corrige certos problemas na instalação.
 #### 4. Criar a estrutura de diretórios do projeto, nomeadamente:
@@ -32,7 +32,7 @@ projeto/
 └── comparison_results/ → resultados de comparação e anotação
 
 
-#### 5. Invocar o **`Makefile`**, que orquestra o pipeline completo (download → QC → montagem → avaliação → anotação → sumário final).
+#### 5. Invocar o **`Makefile`**, que orquestra o pipeline completo (download → QC → avaliação1 → montagem → avaliação2 → anotação → sumário final).
 
 ---
 
