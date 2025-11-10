@@ -1,0 +1,32 @@
+name: TP1_AO_GC
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  # Base
+  - python=3.10
+  - pip
+  - make
+  - wget
+  - unzip
+
+  # Qualidade dos dados (QC)
+  - fastqc
+  - fastp
+  - multiqc
+
+  # Montagem
+  - spades
+  - flye
+  - unicycler
+
+  # Avaliação da montagem
+  - quast
+  - busco
+
+  # Anotação
+  - prokka
+
+  # Outros utilitários
+  - tree
