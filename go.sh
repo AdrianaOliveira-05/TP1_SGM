@@ -12,54 +12,52 @@
 # "=========================================="
 
 echo "=========================================="
-echo "Verificação e criação dos ambientes Conda"
+echo "[A] Criar/renovar ambiente BUSCO v10"
 echo "=========================================="
-
-set -e
-ENV_NAME="TP1_AO_GC"
-
-# Verifica se o conda está instalado
-if ! command -v conda &> /dev/null; then
-    echo "Conda não encontrado!"
-    exit 1
+# (re)criar BUSCO10_ENV
+if conda info --envs | grep -q "^$BUSCO_ENV "; then
+  conda env remove -n "$BUSCO_ENV" -y
 fi
+conda env create -f environment_busco.yml -y
 
-# Recriar ambiente (reprodutibilidade)
-if conda info --envs | grep -q "$ENV_NAME"; then
-    echo "Ambiente '$ENV_NAME' já existe. A remover..."
-    conda env remove -n "$ENV_NAME" -y
+# Pré-download das lineages odb10 com o BUSCO do próprio ambiente
+echo "→ A descarregar BUSCO odb10 lineages (bacteria, eukaryota, fungi)..."
+conda run -n "$BUSCO_ENV" busco --version || fail "busco não corre dentro de $BUSCO_ENV"
+conda run -n "$BUSCO_ENV" busco --download bacteria_odb10 || echo "[!] Falha a bacteria_odb10"
+conda run -n "$BUSCO_ENV" busco --download eukaryota_odb10 || echo "[!] Falha a eukaryota_odb10"
+conda run -n "$BUSCO_ENV" busco --download fungi_odb10 || echo "[!] Falha a fungi_odb10"
+
+# Caminho onde o BUSCO guarda por defeito
+BUSCO_DL_DIR="$HOME/busco_downloads/lineages"
+echo "→ Lineages (se existirem) em: $BUSCO_DL_DIR"
+
+echo ""
+echo "=========================================="
+echo "[B] Criar/renovar ambiente principal"
+echo "=========================================="
+# (re)criar principal
+if conda info --envs | grep -q "^$ENV_NAME "; then
+  conda env remove -n "$ENV_NAME" -y
 fi
-
-
-echo "A criar o ambiente Conda, usando o ficheiro: environment.yml ..."
 conda env create -f environment.yml -y
 
-# === Ativar Conda corretamente no script ===
-eval "$($(conda info --base)/bin/conda shell.bash hook)"
+# Ativar principal
 conda activate "$ENV_NAME"
-echo "Ambiente '$ENV_NAME' ativo."
+echo "→ Ambiente principal ativo: $ENV_NAME"
+
+# >>> FORÇAR quast a usar o busco v10 do outro ambiente
+export PATH="$HOME/miniconda3/envs/$BUSCO_ENV/bin:$PATH"
+# (opcional) indicar ao BUSCO onde estão os downloads (algumas instalações respeitam esta var)
+export BUSCO_DOWNLOADS="$HOME/busco_downloads"
+
+echo "→ which busco: $(which busco)"
+echo "→ busco --version:"
+busco --version || echo "[!] busco não acessível no PATH"
 
 
-# =========================================
-# Criação do ambiente BUSCO separado (v10)
-# =========================================
 
 
-echo "========================================"
-echo "Criação do ambiente BUSCO v10"
-echo "========================================"
 
-echo ">>> A apontar o QUAST para o BUSCO v10 (ambiente BUSCO10_ENV)..."
-
-# Substitui o caminho conforme o local da tua instalação Miniconda:
-export PATH="$HOME/miniconda3/envs/BUSCO10_ENV/bin:$PATH"
-
-# Verifica se o BUSCO correto está a ser reconhecido
-BUSCO_PATH=$(which busco)
-BUSCO_VERSION=$(busco --version 2>/dev/null || echo "não encontrado")
-
-echo "→ BUSCO usado pelo QUAST: $BUSCO_PATH"
-echo "→ Versão BUSCO: $BUSCO_VERSION"
 
 # =============================
 # Cria estrutura de diretórios
