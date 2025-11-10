@@ -1,6 +1,6 @@
-# ==================================================
+# ================================================
 # Makefile — Etapa 1: Download dos dados públicos
-# ==================================================
+# ================================================
 # Este ficheiro descarrega os ficheiros FASTQ e o genoma de referência
 # e guarda tudo dentro de projeto/raw_data/
 
