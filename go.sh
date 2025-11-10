@@ -46,19 +46,20 @@ echo "Ambiente '$ENV_NAME' ativo."
 
 
 echo "========================================"
-echo "[Extra] Criação do ambiente BUSCO v10"
+echo "Criação do ambiente BUSCO v10"
 echo "========================================"
 
-BUSCO_ENV="BUSCO10_ENV"
+echo ">>> A apontar o QUAST para o BUSCO v10 (ambiente BUSCO10_ENV)..."
 
-if conda info --envs | grep -q "$BUSCO_ENV"; then
-    echo "Ambiente '$BUSCO_ENV' já existe. A remover..."
-    conda env remove -n "$BUSCO_ENV" -y
-fi
+# Substitui o caminho conforme o local da tua instalação Miniconda:
+export PATH="$HOME/miniconda3/envs/BUSCO10_ENV/bin:$PATH"
 
-echo "A criar ambiente '$BUSCO_ENV'..."
-conda env create -f environment_busco.yml -y
+# Verifica se o BUSCO correto está a ser reconhecido
+BUSCO_PATH=$(which busco)
+BUSCO_VERSION=$(busco --version 2>/dev/null || echo "não encontrado")
 
+echo "→ BUSCO usado pelo QUAST: $BUSCO_PATH"
+echo "→ Versão BUSCO: $BUSCO_VERSION"
 
 # =============================
 # Cria estrutura de diretórios
