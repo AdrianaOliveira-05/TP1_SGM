@@ -23,7 +23,6 @@ dependencies:
 
   # Avaliação da montagem
   - quast
-  - busco
 
   # Anotação
   - prokka
