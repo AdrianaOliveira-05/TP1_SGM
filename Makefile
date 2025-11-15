@@ -55,19 +55,19 @@ $(RAW):
 
 # Illumina R1
 $(ILLUMINA_R1): | $(RAW)
-	cd $(RAW) && curl -L -O $(ILLUMINA_R1_URL)
+	wget -c -O $@ $(ILLUMINA_R1_URL)
 
 # Illumina R2
 $(ILLUMINA_R2): | $(RAW)
-	cd $(RAW) && curl -L -O $(ILLUMINA_R2_URL)
+	wget -c -O $@ $(ILLUMINA_R2_URL)
 
 # Nanopore
 $(NANOPORE_FASTQ): | $(RAW)
-	cd $(RAW) && curl -L -O $(NANOPORE_URL)
+	wget -c -O $@ $(NANOPORE_URL)
 
 # Genoma de referência 
 $(REF_FASTA): | $(RAW)
-	cd $(RAW) && curl -L -O $@ "$(REF_URL)"
+	wget -c -o $@ $(REF_URL)
 	
 download: $(ILLUMINA_R1) $(ILLIMINA_R2) $(NANOPORE_FASTQ) $(REF_FASTA)
 	@echo ""
@@ -131,3 +131,4 @@ qc_multiqc: | $(QC)
 clean:
 	rm -rf $(RAW) $(QC)
 	@echo "Diretórios $(RAW) e $(QC) removidos."
+
