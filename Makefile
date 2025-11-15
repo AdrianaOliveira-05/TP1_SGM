@@ -4,7 +4,7 @@
 # ===========================================================
 
 # Raiz do projeto
-PROJECT_ROOT = TP1_AO_GC
+PROJECT_ROOT = projeto
 
 # Diretórios principais
 RAW = $(PROJECT_ROOT)/raw_data
@@ -14,47 +14,41 @@ QC  = $(PROJECT_ROOT)/cleaned_data/qc_reports
 # Dados públicos
 # -----------------------------------------------------------
 # Experimentos (IDs do enunciado)
-ILLUMINA_EXPERIMENT  = ERX2788812
-NANOPORE_EXPERIMENT  = ERX4286810
+ILLUMINA_EXPERIMENT = ERX2788812
+NANOPORE_EXPERIMENT = ERX4286810
 
-# Runs usados (ERX -> ERR, conforme ENA)
-ILLUMINA_RUN   = ERR2776735          # ERX2788812 → ERR2776735
-NANOPORE_RUN   = ERR4352271         # ERX4286810 → ERR4352271 (MinION)
+# Runs usados (ERX -> ERR)
+ILLUMINA_RUN  = ERR2776735          # ERX2788812 → ERR2776735
+NANOPORE_RUN  = ERR4352271         # ERX4286810 → ERR4352271 (MinION)
 
-# URLs dos ficheiros FASTQ
+
+# URLs - Illumina (paired-end)
 ILLUMINA_R1_URL = ftp://ftp.sra.ebi.ac.uk/vol1/fastq/ERR277/005/ERR2776735/ERR2776735_1.fastq.gz
 ILLUMINA_R2_URL = ftp://ftp.sra.ebi.ac.uk/vol1/fastq/ERR277/005/ERR2776735/ERR2776735_2.fastq.gz
-NANOPORE_URL    = ftp://ftp.sra.ebi.ac.uk/vol1/fastq/ERR435/001/ERR4352271/ERR4352271_1.fastq.gz
+
+# URL - Nanopore
+NANOPORE_URL = ftp://ftp.sra.ebi.ac.uk/vol1/fastq/ERR435/001/ERR4352271/ERR4352271_1.fastq.gz
+
+# Genoma de referência
+REF_ACCESSION = GCA_903989475.2
+REF_URL = https://www.ebi.ac.uk/ena/browser/api/fasta/GCA_903989475.2?download=true&gzip=true
 
 # Caminhos locais esperados
-ILLUMINA_R1     = $(RAW)/$(ILLUMINA_RUN)_1.fastq.gz
-ILLUMINA_R2     = $(RAW)/$(ILLUMINA_RUN)_2.fastq.gz
-NANOPORE_FASTQ  = $(RAW)/$(NANOPORE_RUN)_1.fastq.gz
+ILLUMINA_R1 = $(RAW)/$(ILLUMINA_RUN)_1.fastq.gz
+ILLUMINA_R2 = $(RAW)/$(ILLUMINA_RUN)_2.fastq.gz
+NANOPORE_FASTQ = $(RAW)/$(NANOPORE_RUN)_1.fastq.gz
+REF_FASTA = $(RAW)/$(REF_ACCESSION)_reference.fna.gz
 
-# Genoma de referência (Unicycler, Illumina + MinION)
-REF_ACCESSION   = GCA_903989475.2
-REF_URL         = https://www.ebi.ac.uk/ena/browser/api/fasta/GCA_903989475.2?download=true&gzip=true
-REF_FASTA       = $(RAW)/$(REF_ACCESSION)_reference.fna.gz
+# ---------
+# Targets 
+# ---------
 
-# -----------------------------------------------------------
-# Targets "lógicos"
-# -----------------------------------------------------------
-
-.PHONY: all download qc qc_fastq_utils qc_fastqc qc_multiqc clean
-
-# Target principal: download + QC dos dados brutos
+.PHONY: all download qc clean
 all: download qc
 
 # --------------------------
-# 1) DOWNLOAD DOS DADOS
+# 1. DOWNLOAD DOS DADOS
 # --------------------------
-
-download: $(ILLUMINA_R1) $(ILLUMINA_R2) $(NANOPORE_FASTQ) $(REF_FASTA)
-	@echo ""
-	@echo "------------------------------------------"
-	@echo "Todos os ficheiros foram descarregados para $(RAW)/"
-	@ls -lh $(RAW)
-	@echo "------------------------------------------"
 
 $(RAW):
 	mkdir -p $(RAW)
@@ -67,24 +61,33 @@ $(ILLUMINA_R1): | $(RAW)
 $(ILLUMINA_R2): | $(RAW)
 	cd $(RAW) && curl -L -O $(ILLUMINA_R2_URL)
 
-# Nanopore (MinION)
+# Nanopore
 $(NANOPORE_FASTQ): | $(RAW)
 	cd $(RAW) && curl -L -O $(NANOPORE_URL)
 
-# Genoma de referência (já comprimido em .gz)
+# Genoma de referência 
 $(REF_FASTA): | $(RAW)
-	curl -L "$(REF_URL)" -o "$@"
+	cd $(RAW) && curl -L -O $@ "$(REF_URL)"
+	
+download: $(ILLUMINA_R1) $(ILLIMINA_R2) $(NANOPORE_FASTQ) $(REF_FASTA)
+	@echo ""
+	@echo "------------------------------------------"
+	@echo"DOWNLOAD CONCLUIDO - ficheiros em: $(RAW)"
+	@ls -lh $(RAW)
+	@echo "------------------------------------------"
+	@echo ""
+	
+	
 
 # --------------------------
 # 2) QC DOS DADOS BRUTOS
 # --------------------------
 
-qc: qc_fastq_utils qc_fastqc qc_multiqc
-
 $(QC):
 	mkdir -p $(QC)/illumina $(QC)/nanopore
 
-# 2.1) Verificação de integridade com fastq_utils
+
+# 2.1 fastq_utils
 qc_fastq_utils: $(ILLUMINA_R1) $(ILLUMINA_R2) $(NANOPORE_FASTQ) | $(QC)
 	@echo ""
 	@echo ">>> [QC] Verificação de integridade com fastq_utils..."
@@ -95,7 +98,7 @@ qc_fastq_utils: $(ILLUMINA_R1) $(ILLUMINA_R2) $(NANOPORE_FASTQ) | $(QC)
 		echo "[!] fastq_utils não encontrado — a saltar esta etapa."; \
 	fi
 
-# 2.2) FastQC separado para Illumina e Nanopore
+# 2.2 FastQC (Illumina + Nanopore)
 qc_fastqc: $(ILLUMINA_R1) $(ILLUMINA_R2) $(NANOPORE_FASTQ) | $(QC)
 	@echo ""
 	@echo ">>> [QC] FastQC — Illumina..."
@@ -109,7 +112,7 @@ qc_fastqc: $(ILLUMINA_R1) $(ILLUMINA_R2) $(NANOPORE_FASTQ) | $(QC)
 		echo "[!] fastqc não encontrado — a saltar esta etapa."; \
 	fi
 
-# 2.3) Relatório global com MultiQC
+# 2.3 Relatório global com MultiQC
 qc_multiqc: | $(QC)
 	@echo ""
 	@echo ">>> [QC] MultiQC — relatório consolidado..."
@@ -120,8 +123,11 @@ qc_multiqc: | $(QC)
 		echo "[!] multiqc não encontrado — sem relatório consolidado."; \
 	fi
 
-# Limpar tudo (cuidado!)
+
+# -----------
+# Limpeza
+# -----------
+
 clean:
 	rm -rf $(RAW) $(QC)
 	@echo "Diretórios $(RAW) e $(QC) removidos."
-
