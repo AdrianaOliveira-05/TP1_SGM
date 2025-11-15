@@ -67,9 +67,9 @@ $(NANOPORE_FASTQ): | $(RAW)
 
 # Genoma de referência 
 $(REF_FASTA): | $(RAW)
-	wget -c -o $@ $(REF_URL)
+	wget -c -O $@ $(REF_URL)
 	
-download: $(ILLUMINA_R1) $(ILLIMINA_R2) $(NANOPORE_FASTQ) $(REF_FASTA)
+download: $(ILLUMINA_R1) $(ILLUMINA_R2) $(NANOPORE_FASTQ) $(REF_FASTA)
 	@echo ""
 	@echo "------------------------------------------"
 	@echo"DOWNLOAD CONCLUIDO - ficheiros em: $(RAW)"
