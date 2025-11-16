@@ -43,7 +43,7 @@ REF_FASTA = $(RAW)/$(REF_ACCESSION)_reference.fna.gz
 # Targets 
 # ---------
 
-.PHONY: all download qc clean
+.PHONY: all download qc clean qc_fastq_utils qc_fastqc qc_multiqc
 all: download qc
 
 # --------------------------
@@ -52,27 +52,15 @@ all: download qc
 
 $(RAW):
 	mkdir -p $(RAW)
-
-# Illumina R1
-$(ILLUMINA_R1): | $(RAW)
-	wget -c -O $@ $(ILLUMINA_R1_URL)
-
-# Illumina R2
-$(ILLUMINA_R2): | $(RAW)
-	wget -c -O $@ $(ILLUMINA_R2_URL)
-
-# Nanopore
-$(NANOPORE_FASTQ): | $(RAW)
-	wget -c -O $@ $(NANOPORE_URL)
-
-# Genoma de referência 
-$(REF_FASTA): | $(RAW)
-	wget -c -O $@ $(REF_URL)
 	
-download: $(ILLUMINA_R1) $(ILLUMINA_R2) $(NANOPORE_FASTQ) $(REF_FASTA)
+download: | $(RAW)
+	cd $(RAW) && wget -c -N $(ILLUMINA_R1_URL)
+	cd $(RAW) && wget -c -N $(ILLUMINA_R2_URL)
+	cd $(RAW) && wget -c -N $(NANOPORE_URL)
+	cd $(RAW) && wget -c -N $(REF_URL)
 	@echo ""
 	@echo "------------------------------------------"
-	@echo"DOWNLOAD CONCLUIDO - ficheiros em: $(RAW)"
+	@echo "DOWNLOAD CONCLUIDO - ficheiros em: $(RAW)"
 	@ls -lh $(RAW)
 	@echo "------------------------------------------"
 	@echo ""
@@ -88,7 +76,7 @@ $(QC):
 
 
 # 2.1 fastq_utils
-qc_fastq_utils: $(ILLUMINA_R1) $(ILLUMINA_R2) $(NANOPORE_FASTQ) | $(QC)
+qc_fastq_utils: $(RAW)/ERR2776735_1.fastq.gz $(RAW)/ERR2776735_2.fastq.gz $(RAW)/ERR4352271_1.fastq.gz | $(QC)
 	@echo ""
 	@echo ">>> [QC] Verificação de integridade com fastq_utils..."
 	@if command -v fastq_utils >/dev/null 2>&1; then \
@@ -99,14 +87,14 @@ qc_fastq_utils: $(ILLUMINA_R1) $(ILLUMINA_R2) $(NANOPORE_FASTQ) | $(QC)
 	fi
 
 # 2.2 FastQC (Illumina + Nanopore)
-qc_fastqc: $(ILLUMINA_R1) $(ILLUMINA_R2) $(NANOPORE_FASTQ) | $(QC)
+qc_fastqc: $(RAW)/ERR2776735_1.fastq.gz $(RAW)/ERR2776735_2.fastq.gz $(RAW)/ERR4352271_1.fastq.gz | $(QC)
 	@echo ""
 	@echo ">>> [QC] FastQC — Illumina..."
 	@if command -v fastqc >/dev/null 2>&1; then \
-		fastqc $(ILLUMINA_R1) $(ILLUMINA_R2) -o $(QC)/illumina --extract; \
+		fastqc $(RAW)/ERR2776735_1.fastq.gz $(RAW)/ERR2776735_2.fastq.gz -o $(QC)/illumina --extract; \
 		echo "→ Relatórios FastQC (Illumina) em $(QC)/illumina"; \
 		echo ">>> [QC] FastQC — Nanopore..."; \
-		fastqc $(NANOPORE_FASTQ) -o $(QC)/nanopore --extract; \
+		fastqc $(RAW)/ERR4352271_1.fastq.gz -o $(QC)/nanopore --extract; \
 		echo "→ Relatórios FastQC (Nanopore) em $(QC)/nanopore"; \
 	else \
 		echo "[!] fastqc não encontrado — a saltar esta etapa."; \
@@ -122,13 +110,4 @@ qc_multiqc: | $(QC)
 	else \
 		echo "[!] multiqc não encontrado — sem relatório consolidado."; \
 	fi
-
-
-# -----------
-# Limpeza
-# -----------
-
-clean:
-	rm -rf $(RAW) $(QC)
-	@echo "Diretórios $(RAW) e $(QC) removidos."
 
