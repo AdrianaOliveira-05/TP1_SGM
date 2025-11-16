@@ -111,3 +111,4 @@ qc_multiqc: | $(QC)
 		echo "[!] multiqc não encontrado — sem relatório consolidado."; \
 	fi
 
+qc: qc_fastq_utils qc_fastqc qc_multiqc
