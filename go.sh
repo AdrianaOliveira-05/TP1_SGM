@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# necessario para o conda activate, sem ele nao conseguimos fazer no script
+source ~/miniconda3/etc/profile.d/conda.sh
+
+
 BUSCO_ENV="BUSCO10_ENV"
 ENV_NAME="TP1_AO_GC"
 
@@ -10,6 +14,24 @@ ENV_NAME="TP1_AO_GC"
 # 1) Cria o ambiente Conda e o ambiente para o BUSCO
 # 2) Cria a estrutura do projeto
 # 3) Invoca o Makefile com todos os targets
+
+# ====================================
+# limpar ambientes antigos
+# ====================================
+
+if conda env list | grep -qx "$BUSCO_ENV"; then
+	echo " A remover ambiente $BUSCO_ENV"
+	conda env remove -n "$BUSCO_ENV" -y
+fi
+
+if conda env list | grep -qx "$ENV_NAME"; then
+	echo " A remover ambiente $ENV_NAME"
+	conda env remove -n "$ENV_NAME" -y
+fi
+
+echo "Ambientes limpos. Pronto a comecar."
+
+
 
 # "=========================================="
 # "Verificação e criação dos ambientes Conda"
