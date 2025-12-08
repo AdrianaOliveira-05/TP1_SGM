@@ -29,7 +29,7 @@ projeto/
 
 ├── qc_reports/ → relatórios de qualidade após QC (Quality Control)
 
-├── assembly_qc/ → relatórios de qualidade das montagens
+├── qc_assembly/ → relatórios de qualidade das montagens
 
 ├── whole_genome/ → genomas montados
 
@@ -171,60 +171,130 @@ Os relatórios são guardados em `qc_reports/raw/`.
 
 ### 3. Limpeza e filtragem das leituras
 
-#### Illumina — *fastp*
-Utilizamos **fastp** para limpeza (trimming, correção de erros e remoção de adaptadores).  
-*Foi escolhido em vez de Trimmomatic*, porque:
-- é mais rápido e multithreaded,
-- produz relatórios HTML integrados,
-- integra deteção automática de adaptadores,
-- aplica correção de erros para paired-end.
+#### Nanopore — *Cutadapt + NanoFilt* (única limpeza realizada)
 
-#### Nanopore — *Cutadapt + NanoFilt*
-A limpeza Nanopore é dividida em dois passos:
+A única etapa de limpeza efetuada no pipeline é aplicada às leituras **Nanopore**, uma vez que as leituras Illumina foram usadas tal como descarregadas (sem trimming adicional).
 
-1. **Cutadapt** remove artefactos, poliações e bases erradas no início/fim das leituras.  
-   *Foi escolhido em vez de Porechop*, que está descontinuado e incompatível com versões recentes do Conda.
+A limpeza Nanopore decorre em **dois passos complementares**:
 
-2. **NanoFilt** aplica uma filtragem suave por qualidade e comprimento.  
-   *Foi escolhido em vez de Filtlong*, porque o objetivo do projeto não era enriquecer para melhores reads, mas sim manter a representação completa do genoma.
+1. **Cutadapt** — remoção de artefactos e extremidades ruidosas  
+   Este passo elimina:
+   - poliações longas (ex.: “A{30}”, “T{30}”),
+   - bases de baixa qualidade,
+   - fragmentos demasiado curtos.
 
-Os dados limpos são guardados em `cleaned_data/`.
+   *Cutadapt foi escolhido em vez de Porechop* porque:
+   - Porechop está descontinuado,
+   - apresenta problemas de compatibilidade com versões recentes de Conda,
+   - Cutadapt é atualmente a solução mais estável e suportada para trimming de Nanopore.
+
+2. **NanoFilt** — filtragem suave por qualidade e comprimento  
+   NanoFilt aplica:
+   - limiar mínimo de qualidade,
+   - remoção de leituras demasiado curtas,
+   - normalização leve das extremidades.
+
+   *NanoFilt foi preferido a Filtlong* porque:
+   - o objetivo **não** era enriquecer para “melhores” leituras,
+   - queríamos preservar a diversidade natural do conjunto de reads,
+   - o foco era evitar enviesamento que pudesse comprometer a cobertura do genoma.
+
+Os dados resultantes da limpeza são armazenados em: projeto/clean_nanopore/
+
+
 
 ---
 
 ### 4. Controlo de qualidade pós-limpeza (QC2)
 
-Repetimos o QC para confirmar a melhoria obtida:
+Após a limpeza aplicada exclusivamente às leituras **Nanopore**, é realizado um segundo controlo de qualidade para verificar o impacto do trimming + filtragem e garantir que os dados estão prontos para montagem.
 
-- FastQC para Illumina (validação do trimming)
-- Falco para Nanopore
-- fastq-stats para métricas quantitativas
-- MultiQC para relatório consolidado
+As ferramentas utilizadas foram:
 
-Estas análises encontram-se em `qc_reports/clean/`.
+- **FastQC (Illumina)**  
+  Usado apenas para confirmar a integridade das leituras Illumina tal como descarregadas,  
+  **não** para validar trimming (uma vez que não foi aplicada limpeza Illumina).
+
+- **Falco (Nanopore – pós-limpeza)**  
+  Permite avaliar como o processo *Cutadapt + NanoFilt* melhorou:
+  - distribuição de qualidade,
+  - tamanho das leituras,
+  - presença de contaminantes ou artefactos.
+
+- **fastq-stats**  
+  Para métricas quantitativas simples (número de leituras, tamanho médio, N content, etc.).
+
+- **MultiQC**  
+  Gera um relatório consolidado dos resultados obtidos nas etapas anteriores.
+
+Os relatórios do QC2 encontram-se em: projeto/qc_reports/nanopore_clean/ 
+
+
+
+
 
 ---
 
 ### 5. Montagem do genoma
 
-O pipeline produz **três montagens independentes** — cada uma escolhida por motivos técnicos distintos:
+O pipeline gera **quatro montagens independentes**, permitindo comparar o efeito do tipo de leitura e do pré-processamento na qualidade final do genoma reconstruído.
 
-1. **Illumina-only (SPAdes)**  
-   - Excelente fidelidade base-a-base (alta qualidade Illumina).  
-   - SPAdes é particularmente robusto para pequenas bactérias.  
-   *Foi escolhido em vez de Velvet*, que está obsoleto e tem pior desempenho em datasets modernos.
+---
 
-2. **Nanopore-only (Flye)**  
-   - Ideal para leituras longas e coberturas variáveis.  
-   - Capaz de gerar contigs mais contínuos.  
-   *Foi escolhido em vez de Canu*, que tem tempos de execução significativamente maiores.
+#### 1. Montagem Illumina-only — *SPAdes*
 
-3. **Montagem híbrida (SPAdes híbrido)**  
-   - Combina a precisão Illumina com a continuidade Nanopore.  
-   - Tende a produzir scaffolds melhores do que qualquer montagem isolada.  
-   *Foi escolhido em vez de Unicycler*, que também é excelente, mas o enunciado sugere SPAdes como montador principal.
+**Motivação**
+- Tira partido da elevada precisão base-a-base das leituras Illumina.
+- SPAdes é o montador de referência para genomas bacterianos.
+- O uso de múltiplos *k-mers* melhora a resolução de regiões repetidas.
 
-As montagens são guardadas em `whole_genome/`.
+*Foi escolhido em vez de Velvet*, que se encontra obsoleto e com pior desempenho em datasets modernos.
+
+---
+
+#### 2. Montagem Nanopore-only (RAW) — *Flye*
+
+**Motivação**
+- Flye é optimizado para as características das leituras longas de Nanopore.
+- A opção `--meta` lida bem com coberturas irregulares e estruturas genómicas complexas.
+- Produz contigs mais longos e contínuos do que montadores tradicionais baseados em *k-mers*.
+
+*Foi escolhido em vez de Canu* por ser muito mais rápido e computacionalmente eficiente.
+
+---
+
+#### 3. Montagem Nanopore CLEAN — *Flye*
+
+**Objectivo**
+- Avaliar o impacto da limpeza (*Cutadapt + NanoFilt*) na qualidade da montagem.
+- Verificar melhorias em métricas como N50, número total de contigs e completude BUSCO.
+- Comparar diretamente com a montagem Nanopore RAW, isolando o efeito da filtragem.
+
+---
+
+#### 4. Montagem híbrida (Illumina + Nanopore CLEAN) — *SPAdes híbrido*
+
+**Motivação**
+- Combina a precisão Illumina com a continuidade das leituras longas Nanopore.
+- SPAdes oferece integração híbrida estável e alinhada com o que o enunciado sugere como abordagem principal.
+- Produz scaffolds mais completos do que qualquer montagem isolada.
+
+---
+
+#### 5. Montagem híbrida CLEAN — *SPAdes híbrido*
+
+Esta é a **montagem híbrida principal do projeto**, a que realmente corre no pipeline.
+
+**Motivação**
+- Combina a precisão Illumina com a continuidade de Nanopore filtrado.
+- SPAdes híbrido integra-se facilmente no workflow.
+- Oferece scaffolds mais completos e menos fragmentados.
+- Mantém consistência com o montador Illumina escolhido (SPAdes), reduzindo variabilidade metodológica.
+
+---
+
+As montagens são guardadas em: projeto/whole_genome/
+
 
 ---
 
@@ -241,7 +311,7 @@ Para garantir rigor na comparação entre métodos, são utilizadas duas métric
 - avalia a percentagem de genes conservados no conjunto *bacteria_odb10*.  
 *Foi escolhido em vez de CheckM*, que exige workflows mais pesados e destinam-se mais a metagenomas ou múltiplos bins.
 
-Os resultados ficam em `assembly_qc/quast/` e `assembly_qc/busco/`.
+Os resultados ficam em `qc_assembly/quast/` e `qc_assembly/busco/`.
 
 ---
 
@@ -250,7 +320,7 @@ Os resultados ficam em `assembly_qc/quast/` e `assembly_qc/busco/`.
 O Makefile gera automaticamente um ficheiro:
 
 ```
-assembly_qc/summary_report.txt
+qc_assembly/summary_report.txt
 ```
 
 Este relatório contém:
@@ -268,10 +338,6 @@ Além da execução padrão das ferramentas bioinformáticas, o projeto inclui u
 #### • Criação automática e estruturada de diretórios
 O Makefile cria todos os diretórios necessários antes de cada tarefa (raw, clean, QC, trimmed, filtrados, etc.).  
 Isto garante que o pipeline pode ser executado num sistema vazio, sem passos manuais, reduzindo falhas por inexistência de caminhos.
-
-#### • Limpeza Illumina otimizada (fastp executado apenas uma vez)
-A limpeza paired-end é feita com uma única chamada a `fastp`, que gera simultaneamente os ficheiros limpos R1 e R2 e os relatórios associados.  
-Foi ainda implementada uma regra "falsa" para impedir a execução duplicada do fastp, garantindo eficiência e consistência entre os pares.
 
 #### • Pipeline Nanopore em duas etapas complementares: Cutadapt → NanoFilt
 A limpeza das leituras longas foi separada em dois passos distintos:
