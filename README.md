@@ -64,8 +64,9 @@ Foram organizadas em dois ambientes: **TP1_AO_GC** (pipeline principal) e **BUSC
 - `falco=1.2.1` — avaliação de qualidade Nanopore  
 
 ##### **Montagem**
-- **SPAdes** — montagem Illumina  
-- **Flye** — montagem Nanopore  
+- **SPAdes** — montagem Illumina e Hibrida
+- **Flye** — montagem Nanopore
+- **Unycicler** — montagem Hibrida  
 
 ##### **Polishing**
 - `bwa=0.7.17` — alinhamento das leituras Illumina  
