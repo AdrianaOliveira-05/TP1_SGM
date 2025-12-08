@@ -6,169 +6,429 @@
 # Raiz do projeto
 PROJECT_ROOT = projeto
 
-# Diretórios principais
-RAW = $(PROJECT_ROOT)/raw_data/
-QC  = $(PROJECT_ROOT)/raw_data/qc_reports
-CLEAN = $(PROJECT_ROOT)/cleaned_data
+# Diretórios principais: dados brutos e dados limpos
+RAW = $(PROJECT_ROOT)/raw_data
+QC_RAW_BASE = $(PROJECT_ROOT)/qc_reports
+QC_ILLUMINA = $(QC_RAW_BASE)/illumina
+QC_NANOPORE = $(QC_RAW_BASE)/nanopore
 
-# -----------------------------------------------------------
-# Dados públicos
-# -----------------------------------------------------------
-# Experimentos (IDs do enunciado)
-ILLUMINA_EXPERIMENT = ERX2788812
-NANOPORE_EXPERIMENT = ERX4286810
+CLEAN_NANOPORE = $(PROJECT_ROOT)/clean_nanopore
+NANOPORE_TRIMMED = $(CLEAN_NANOPORE)/nanopore_trimmed.fastq.gz
+NANOPORE_FILTERED = $(CLEAN_NANOPORE)/nanopore_filtered.fastq.gz
 
-# Runs usados (ERX -> ERR)
-ILLUMINA_RUN  = ERR2776735          # ERX2788812 → ERR2776735
-NANOPORE_RUN  = ERR4352271         # ERX4286810 → ERR4352271 (MinION)
+ASSEMBLY_DIR = $(PROJECT_ROOT)/whole_genome
+ILLUMINA_ASSEMBLY = $(ASSEMBLY_DIR)/illumina
+NANOPORE_ASSEMBLY = $(ASSEMBLY_DIR)/nanopore
+NANOPORE_ASSEMBLY_CLEAN = $(ASSEMBLY_DIR)/nanopore_clean
+HYBRID_ASSEMBLY_CLEAN = $(ASSEMBLY_DIR)/hybrid_clean
+HYBRID_ASSEMBLY_SPADES = $(ASSEMBLY_DIR)/hybrid_spades
+
+QC_ASSEMBLY = $(PROJECT_ROOT)/qc_assembly
+QUAST = $(QC_ASSEMBLY)/quast
+BUSCO =$(QC_ASSEMBLY)/busco
+
+RESULTS_DIR = $(PROJECT_ROOT)/comparison_results
+ANNOTATION_DIR = $(PROJECT_ROOT)/annotation
+
+SUMARIO = $(RESULTS_DIR)/sumario.tsv
 
 
-# URLs - Illumina (paired-end)
-ILLUMINA_R1_URL = ftp://ftp.sra.ebi.ac.uk/vol1/fastq/ERR277/005/ERR2776735/ERR2776735_1.fastq.gz
-ILLUMINA_R2_URL = ftp://ftp.sra.ebi.ac.uk/vol1/fastq/ERR277/005/ERR2776735/ERR2776735_2.fastq.gz
 
-# URL - Nanopore
-NANOPORE_URL = ftp://ftp.sra.ebi.ac.uk/vol1/fastq/ERR435/001/ERR4352271/ERR4352271_1.fastq.gz
-
-# Genoma de referência
-REF_ACCESSION = GCA_903989475.2
-REF_URL = https://www.ebi.ac.uk/ena/browser/api/fasta/GCA_903989475.2?download=true&gzip=true
-
-# Caminhos locais esperados
-ILLUMINA_R1 = $(RAW)/$(ILLUMINA_RUN)_1.fastq.gz
-ILLUMINA_R2 = $(RAW)/$(ILLUMINA_RUN)_2.fastq.gz
-NANOPORE_FASTQ = $(RAW)/$(NANOPORE_RUN)_1.fastq.gz
-REF_FASTA = $(RAW)/$(REF_ACCESSION)_reference.fna.gz
-
-ILLUMINDA_CLEAN_R1 = $(CLEAN)/illumina_cleaned_1.fastq.gz
-ILLUMINDA_CLEAN_R2 = $(CLEAN)/illumina_cleaned_2.fastq.gz
-
-# ---------
-# Targets 
-# ---------
-
-.PHONY: all download qc clean qc_fastq_utils qc_fastqc qc_multiqc clean_illumina qc_clean
-all: download qc clean_illumina qc_clean
-
-# --------------------------
-# 1. DOWNLOAD DOS DADOS
-# --------------------------
 
 $(RAW):
 	mkdir -p $(RAW)
-	
-download: | $(RAW)
-	cd $(RAW) && wget -c -N $(ILLUMINA_R1_URL)
-	cd $(RAW) && wget -c -N $(ILLUMINA_R2_URL)
-	cd $(RAW) && wget -c -N $(NANOPORE_URL)
-	cd $(RAW) && wget -c -N $(REF_URL)
+
+$(CLEAN_NANOPORE):
+	mkdir -p $(CLEAN_NANOPORE)
+
+
+
+$(QC_RAW_BASE):
+	mkdir -p $(QC_RAW_BASE)
+
+$(QC_ILLUMINA):
+	mkdir -p $(QC_ILLUMINA)
+
+$(QC_NANOPORE):
+	mkdir -p $(QC_NANOPORE)
+
+
+
+$(ASSEMBLY_DIR):
+	mkdir -p $(ASSEMBLY_DIR)
+
+$(ILLUMINA_ASSEMBLY):
+	mkdir -p $(ILLUMINA_ASSEMBLY)
+
+$(NANOPORE_ASSEMBLY):
+	mkdir -p $(NANOPORE_ASSEMBLY)
+
+$(NANOPORE_ASSEMBLY_CLEAN):
+	mkdir -p $(NANOPORE_ASSEMBLY_CLEAN)
+
+$(HYBRID_ASSEMBLY_CLEAN):
+	 mkdir -p $(HYBRID_ASSEMBLY_CLEAN)
+
+$(HYBRID_ASSEMBLY_SPADES):
+	mkdir -p $(HYBRID_ASSEMBLY_SPADES)
+
+
+
+
+$(QC_ASSEMBLY):
+	mkdir -p $(QC_ASSEMBLY)
+
+$(QUAST):
+	mkdir -p $(QUAST)
+
+$(BUSCO):
+	mkdir -p $(BUSCO)
+
+
+$(ANNOTATION_DIR):
+	mkdir -p $(ANNOTATION_DIR)
+
+
+
+$(RESULTS_DIR):
+	mkdir -p $(RESULTS_DIR)
+
+
+# =========================== 
+#       TARGETS
+# ===========================
+.PHONY: download rename_downloads qc assemble_all qc_quast qc_busco
+
+all: download qc assemble_all qc_quast qc_busco
+
+
+# =========================== 
+#       DOWNLOADS
+# ===========================
+ILLUMINA_R1_URL = ftp://ftp.sra.ebi.ac.uk/vol1/fastq/ERR276/001/ERR2767971/ERR2767971_1.fastq.gz
+ILLUMINA_R2_URL = ftp://ftp.sra.ebi.ac.uk/vol1/fastq/ERR276/001/ERR2767971/ERR2767971_2.fastq.gz
+NANOPORE_URL = ftp://ftp.sra.ebi.ac.uk/vol1/fastq/ERR435/001/ERR4352271/ERR4352271_1.fastq.gz
+REFERENCIA = https://www.ebi.ac.uk/ena/browser/api/fasta/GCA_903989475.2?download=true&gzip=true 
+
+
+download:
+	# illumina
+#	cd $(RAW) && wget -nc $(ILLUMINA_R1_URL) -O illumina_R1.fastq.gz
+#        cd $(RAW) && wget -nc $(ILLUMINA_R2_URL) -O illumina_R2.fastq.gz
+
+	# nanopore
+#	cd $(RAW) && wget -nc $(NANOPORE_URL) -O nanopore.fastq.gz
+
+	# referencia
+#	cd $(RAW) && wget -nc $(REFERENCIA) -O refseq.fastq.gz
+
+
+
+
+
+# Nomes finais dos ficheiros Illumina/Nanopore/Referência
+ILLUMINA_R1 = $(RAW)/illumina_R1.fastq.gz
+ILLUMINA_R2 = $(RAW)/illumina_R2.fastq.gz
+NANOPORE = $(RAW)/nanopore.fastq.gz
+
+REFSEQ_GZ = $(RAW)/refseq.fasta.gz
+REFSEQ     = $(RAW)/refseq.fasta
+
+$(REFSEQ): $(REFSEQ_GZ)
+	gunzip -c $(REFSEQ_GZ) > $(REFSEQ)
+
+
+rename_downloads:
+	cd $(RAW) && if [ -f ERR2767971_1.fastq.gz ]; then mv ERR2767971_1.fastq.gz illumina_R1.fastq.gz; fi
+	cd $(RAW) && if [ -f ERR2767971_2.fastq.gz ]; then mv ERR2767971_2.fastq.gz illumina_R2.fastq.gz; fi
+	cd $(RAW) && if [ -f ERR4352271_1.fastq.gz ]; then mv ERR4352271_1.fastq.gz nanopore.fastq.gz; fi
+	cd $(RAW) && if [ -f GCA_903989475.2.fasta.gz ]; then mv GCA_903989475.2.fasta.gz refseq.fasta.gz; fi
+
+
+# ===========================
+#    LIMPEZA NANOPORE
+# ===========================
+
+nanopore_trim: $(NANOPORE) | $(CLEAN_NANOPORE)
+	cutadapt \
+		-a "A{30}" -g "T{30}" \
+		--minimum-length 50 \
+		--quality-cutoff 6 \
+		$(NANOPORE) \
+		-o $(NANOPORE_TRIMMED)
+
+nanopore_filter: nanopore_trim | $(CLEAN_NANOPORE)
+	gunzip -c $(NANOPORE_TRIMMED) | \
+		seqtk seq -l0 - | \
+		NanoFilt -q 10 --length 500 | \
+		gzip > $(NANOPORE_FILTERED)
+
+clean_nanopore: nanopore_trim nanopore_filter
+	@echo ">>> Nanopore limpo criado: $(NANOPORE_FILTERED)"
+
+
+
+
+# ===========================
+# 	QC REPORTS	
+# ===========================
+
+
+qc: qc_fastqc qc_falco_raw_nanopore qc_multiqc qc_fastq_stats_raw
+
+
+
+# ---------------------------
+# 2.1 FastQC RAW (Illumina)
+# ---------------------------
+qc_fastqc: $(ILLUMINA_R1) $(ILLUMINA_R2) | $(QC_ILLUMINA)
 	@echo ""
-	@echo "------------------------------------------"
-	@echo "DOWNLOAD CONCLUIDO - ficheiros em: $(RAW)"
-	@ls -lh $(RAW)
-	@echo "------------------------------------------"
+	@echo ">>> [QC] FastQC — Illumina (RAW)..."
+	fastqc $(ILLUMINA_R1) $(ILLUMINA_R2) \
+		-o $(QC_ILLUMINA) \
+		--extract \
+		--threads 8
+
+
+# ---------------------------
+# 2.3 FALCO (Nanopore RAW)
+# ---------------------------
+qc_falco_raw_nanopore: $(NANOPORE) |$(QC_NANOPORE)
+	@echo ">>> [QC] Falco — Nanopore (RAW)..."
+	falco $(NANOPORE) \
+		--outdir $(QC_NANOPORE) \
+		--threads 8
+	@echo ">>> Falco RAW (Nanopore) concluído."
+
+
+# ---------------------------
+# 2.4 MultiQC RAW
+# ---------------------------
+qc_multiqc: qc_fastqc qc_falco_raw_nanopore
 	@echo ""
-	
-	
-
-# --------------------------
-# 2) QC 1 (RAW DATA)
-# --------------------------
-
-$(QC):
-	mkdir -p $(QC)/illumina $(QC)/nanopore
-
-
-# 2.1 fastq_utils
-qc_fastq_utils: $(RAW)/ERR2776735_1.fastq.gz $(RAW)/ERR2776735_2.fastq.gz $(RAW)/ERR4352271_1.fastq.gz | $(QC)
-	@echo ""
-	@echo ">>> [QC] Verificação de integridade com fastq_utils..."
-	@if command -v fastq_utils >/dev/null 2>&1; then \
-		fastq_utils check $(RAW)/*.fastq.gz > $(QC)/fastq_utils_check.log 2>&1; \
-		echo "→ Relatório fastq_utils guardado em $(QC)/fastq_utils_check.log"; \
-	else \
-		echo "[!] fastq_utils não encontrado — a saltar esta etapa."; \
-	fi
-
-# 2.2 FastQC (Illumina + Nanopore)
-qc_fastqc: $(RAW)/ERR2776735_1.fastq.gz $(RAW)/ERR2776735_2.fastq.gz $(RAW)/ERR4352271_1.fastq.gz | $(QC)
-	@echo ""
-	@echo ">>> [QC] FastQC — Illumina..."
-	@if command -v fastqc >/dev/null 2>&1; then \
-		fastqc $(RAW)/ERR2776735_1.fastq.gz $(RAW)/ERR2776735_2.fastq.gz -o $(QC)/illumina --extract; \
-		echo "→ Relatórios FastQC (Illumina) em $(QC)/illumina"; \
-		echo ">>> [QC] FastQC — Nanopore..."; \
-		fastqc $(RAW)/ERR4352271_1.fastq.gz -o $(QC)/nanopore --extract; \
-		echo "→ Relatórios FastQC (Nanopore) em $(QC)/nanopore"; \
-	else \
-		echo "[!] fastqc não encontrado — a saltar esta etapa."; \
-	fi
-
-# 2.3 Relatório global com MultiQC
-qc_multiqc: | $(QC)
-	@echo ""
-	@echo ">>> [QC] MultiQC — relatório consolidado..."
+	@echo ">>> [QC] MultiQC — consolidado RAW..."
 	@if command -v multiqc >/dev/null 2>&1; then \
-		multiqc $(QC) -o $(QC); \
-		echo "→ Relatório MultiQC criado em $(QC)/multiqc_report.html"; \
+		multiqc $(QC_RAW_BASE) -o $(QC_RAW_BASE); \
+		echo "→ MultiQC RAW em $(QC_RAW_BASE)/multiqc_raw.html"; \
 	else \
-		echo "[!] multiqc não encontrado — sem relatório consolidado."; \
-	fi
-	
-
-qc: qc_fastq_utils qc_fastqc qc_multiqc
-
-
-# --------------------------
-# 3) LIMPEZA DE DADOS
-# --------------------------
-
-$(CLEAN):
-	mkdir -p $(CLEAN)
-
-# 3.1) ILLUMINA
-
-clean_illumina: $(RAW)/ERR2776735_1.fastq.gz $(RAW)/ERR2776735_2.fastq.gz | $(CLEAN)
-	@echo ""
-	@echo ">>> [CLEAN] Limpeza de dados Illumina com fastp..."
-	@if command -v fastp >/dev/null 2>&1; then \
-		fastp \
-			-i $(RAW)/ERR2776735_1.fastq.gz \
-			-I $(RAW)/ERR2776735_2.fastq.gz \
-			-o $(ILLUMINA_CLEAN_R1) \
-			-O $(ILLUMINA_CLEAN_R2) \
-			-h $(RAW)/fastp_illumina_report.html \
-			-j $(RAW)/fastp_illumina_report.json ; \
-		echo "→ FASTQ limpos criados em:"; \
-		echo "   $(ILLUMINA_CLEAN_R1)"; \
-		echo "   $(ILLUMINA_CLEAN_R2)"; \
-		echo "→ Relatórios de QC do fastp em:"; \
-		echo "   $(RAW)/fastp_illumina_report.html"; \
-		echo "   $(RAW)/fastp_illumina_report.json"; \
-	else \
-		echo "[!] fastp não encontrado — a saltar limpeza de Illumina."; \
-	fi
-
-# --------------------------
-# 4) QC 2 (CLEANED DATA)
-# --------------------------
-
-QC_ILLUMINA_CLEAN = $(QC)/illumina_cleaned
-
-$(QC_ILLUMINA_CLEAN):
-	mkdir -p $(QC_ILLUMINA_CLEAN)
-
-# 4.1 FASTQC - ILLUMINA_CLEANED]
-
-qc_clean_fastqc: $(ILLUMINA_CLEAN_R1) $(ILLUMINA_CLEAN_R2) | $(QC_ILLUMINA_CLEAN)
-	@echo ""
-	@echo ">>> [QC2] FastQC — Illumina (dados limpos)..."
-	@if command -v fastqc >/dev/null 2>&1; then \
-		fastqc $(ILLUMINA_CLEAN_R1) $(ILLUMINA_CLEAN_R2) -o $(QC_ILLUMINA_CLEAN) --extract; \
-		echo "→ Relatórios FastQC (Illumina limpos) em $(QC_ILLUMINA_CLEAN)"; \
-	else \
-		echo "[!] fastqc não encontrado — a saltar QC2 (Illumina limpos)."; \
+		echo "[!] multiqc não encontrado — relatório RAW não gerado."; \
 	fi
 
 
-qc_clean: qc_clean_fastqc
+# ---------------------------
+# 2.5 fastq_stats RAW
+# ---------------------------
+qc_fastq_stats_raw:
+	@echo ">>> [QC] fastq_stats — RAW..."
+
+	fastq-stats $(ILLUMINA_R1) > $(QC_ILLUMINA)/illumina_R1_raw_stats.txt
+	fastq-stats $(ILLUMINA_R2) > $(QC_ILLUMINA)/illumina_R2_raw_stats.txt
+	fastq-stats $(NANOPORE)    > $(QC_NANOPORE)/nanopore_raw_stats.txt
+
+	@echo "→ fastq_stats RAW concluído."
+
+
+
+
+# =========================== 
+#       MONTAGEM      
+# ===========================
+
+assemble_illumina: $(ILLUMINA_R1) $(ILLUMINA_R2) | $(ILLUMINA_ASSEMBLY)
+	spades.py \
+		-1 $(ILLUMINA_R1) \
+		-2 $(ILLUMINA_R2) \
+		-o $(ILLUMINA_ASSEMBLY) \
+		--only-assembler \
+		-k 21,33,55,77 \
+		--threads 16
+
+
+assemble_nanopore: $(NANOPORE) | $(NANOPORE_ASSEMBLY)
+	flye \
+		--nano-raw $(NANOPORE) \
+		--out-dir $(NANOPORE_ASSEMBLY) \
+		--meta \
+		--genome-size 5m \
+		--threads 16
+
+
+assemble_nanopore_clean: $(NANOPORE_FILTERED) | $(NANOPORE_ASSEMBLY_CLEAN)
+	flye \
+		--nano-raw $(NANOPORE_FILTERED) \
+		--out-dir $(NANOPORE_ASSEMBLY_CLEAN) \
+		--meta \
+		--genome-size 5m \
+		--threads 16
+
+
+assemble_hybrid_clean: $(ILLUMINA_R1) $(ILLUMINA_R2) $(NANOPORE_FILTERED) | $(HYBRID_ASSEMBLY_CLEAN)
+	@echo ">>> [ASM] Montagem híbrida com Unicycler (Nanopore limpo)..."
+	unicycler \
+		-1 $(ILLUMINA_R1) \
+		-2 $(ILLUMINA_R2) \
+		-l $(NANOPORE_FILTERED) \
+		-o $(HYBRID_ASSEMBLY_CLEAN) \
+		--mode bold \
+		--threads 16
+	@echo ">>> Unicycler (Hybrid assembly usando nanopore limpo) concluído."
+
+assemble_hybrid_spades_clean: $(ILLUMINA_R1) $(ILLUMINA_R2) $(NANOPORE_FILTERED) | $(HYBRID_ASSEMBLY_SPADES)
+	spades.py \
+		-1 $(ILLUMINA_R1) \
+		-2 $(ILLUMINA_R2) \
+		--nanopore $(NANOPORE_FILTERED) \
+		-o $(HYBRID_ASSEMBLY_SPADES) \
+		--only-assembler \
+		-k 21, 33, 55 \
+		--threads 16
+
+
+assemble_all: assemble_illumina assemble_nanopore assemble_nanopore_clean assemble_hybrid_clean assemble_hybrid_spades_clean
+
+
+
+# =========================== 
+#       QUAST + BUSCO
+# ===========================
+
+#               $(HYBRID_ASSEMBLY_CLEAN)/assembly.fasta \
+
+qc_quast: | $(QUAST)
+	@echo ">>> [QC ASM] QUAST — Avaliação das montagens..."
+
+	quast \
+		$(ILLUMINA_ASSEMBLY)/contigs.fasta \
+		$(NANOPORE_ASSEMBLY)/assembly.fasta \
+		$(NANOPORE_ASSEMBLY_CLEAN)/assembly.fasta \
+		$(HYBRID_ASSEMBLY_SPADES)/scaffolds.fasta \
+		-R $(REFSEQ) \
+		-o $(QUAST) \
+		--threads 8
+
+	@echo ">>> QUAST concluído."
+BUSCO_DB = bacteria_odb10
+BUSCO_MODE = genome
+
+qc_busco: qc_busco_illumina qc_busco_nanopore_raw qc_busco_nanopore_clean qc_busco_hybrid_unicycler qc_busco_hybrid_spades
+	@echo ">>> [QC ASM] BUSCO — todas as avaliações concluídas."
+
+
+# Illumina-only
+qc_busco_illumina:
+	@echo ">>> [BUSCO] Illumina..."
+	conda run -n BUSCO10_ENV busco \
+		-i $(ILLUMINA_ASSEMBLY)/contigs.fasta \
+		-l $(BUSCO_DB) \
+		-o busco_illumina \
+		-m $(BUSCO_MODE) \
+		--out_path $(BUSCO)
+
+
+# Nanopore raw
+qc_busco_nanopore_raw:
+	@echo ">>> [BUSCO] Nanopore RAW..."
+	conda run -n BUSCO10_ENV busco \
+		-i $(NANOPORE_ASSEMBLY)/assembly.fasta \
+		-l $(BUSCO_DB) \
+		-o busco_nanopore_raw \
+		-m $(BUSCO_MODE) \
+		--out_path $(BUSCO)
+
+
+# Nanopore clean
+qc_busco_nanopore_clean:
+	@echo ">>> [BUSCO] Nanopore CLEAN..."
+	conda run -n BUSCO10_ENV busco \
+		-i $(NANOPORE_ASSEMBLY_CLEAN)/assembly.fasta \
+		-l $(BUSCO_DB) \
+		-o busco_nanopore_clean \
+		-m $(BUSCO_MODE) \
+		--out_path $(BUSCO)
+
+
+# Hybrid Unicycler
+qc_busco_hybrid_unicycler:
+	@echo ">>> [BUSCO] Hybrid UNICYCLER..."
+	conda run -n BUSCO10_ENV busco \
+		-i $(HYBRID_ASSEMBLY_CLEAN)/assembly.fasta \
+		-l $(BUSCO_DB) \
+		-o busco_hybrid_unicycler \
+		-m $(BUSCO_MODE) \
+		--out_path $(BUSCO)
+
+
+# Hybrid SPAdes
+qc_busco_hybrid_spades:
+	@echo ">>> [BUSCO] Hybrid SPADES..."
+	conda run -n BUSCO10_ENV busco \
+		-i $(HYBRID_ASSEMBLY_SPADES)/scaffolds.fasta \
+		-l $(BUSCO_DB) \
+		-o busco_hybrid_spades \
+		-m $(BUSCO_MODE) \
+		--out_path $(BUSCO)
+
+
+
+
+# ===============================
+#     7. ANOTAÇÃO COM PROKKA
+# ===============================
+
+annotate: annotate_illumina annotate_nanopore annotate_nanopore_clean annotate_hybrid_unicycler annotate_hybrid_spades
+	@echo ">>> [PROKKA] Anotação concluída para todas as montagens."
+
+
+annotate_illumina: $(ILLUMINA_ASSEMBLY)/contigs.fasta | $(ANNOTATION_DIR)
+	@echo ">>> [PROKKA] Anotação — Illumina"
+	prokka \
+		$(ILLUMINA_ASSEMBLY)/contigs.fasta \
+		--outdir $(ANNOTATION_DIR)/illumina \
+		--prefix illumina \
+		--locustag XAJILL \
+		--cpus 8
+	@echo "→ Prokka Illumina concluído."
+
+
+annotate_nanopore: $(NANOPORE_ASSEMBLY)/assembly.fasta | $(ANNOTATION_DIR)
+	@echo ">>> [PROKKA] Anotação — Nanopore RAW"
+	prokka \
+		$(NANOPORE_ASSEMBLY)/assembly.fasta \
+		--outdir $(ANNOTATION_DIR)/nanopore_raw \
+		--prefix nanopore_raw \
+		--locustag XAJNRAW \
+		--cpus 8
+	@echo "→ Prokka Nanopore RAW concluído."
+
+
+annotate_nanopore_clean: $(NANOPORE_ASSEMBLY_CLEAN)/assembly.fasta | $(ANNOTATION_DIR)
+	@echo ">>> [PROKKA] Anotação — Nanopore CLEAN"
+	prokka \
+		$(NANOPORE_ASSEMBLY_CLEAN)/assembly.fasta \
+		--outdir $(ANNOTATION_DIR)/nanopore_clean \
+		--prefix nanopore_clean \
+		--locustag XAJNCLEAN \
+		--cpus 8
+	@echo "→ Prokka Nanopore CLEAN concluído."
+
+
+annotate_hybrid_unicycler: $(HYBRID_ASSEMBLY_CLEAN)/assembly.fasta | $(ANNOTATION_DIR)
+	@echo ">>> [PROKKA] Anotação — Hybrid Unicycler"
+	prokka \
+		$(HYBRID_ASSEMBLY_CLEAN)/assembly.fasta \
+		--outdir $(ANNOTATION_DIR)/hybrid_unicycler \
+		--prefix hybrid_unicycler \
+		--locustag XAJHUN \
+		--cpus 8
+	@echo "→ Prokka Hybrid Unicycler concluído."
+
+
+annotate_hybrid_spades: $(HYBRID_ASSEMBLY_SPADES)/contigs.fasta | $(ANNOTATION_DIR)
+	@echo ">>> [PROKKA] Anotação — Hybrid SPAdes"
+	prokka \
+		$(HYBRID_ASSEMBLY_SPADES)/contigs.fasta \
+		--outdir $(ANNOTATION_DIR)/hybrid_spades \
+		--prefix hybrid_spades \
+		--locustag XAJHSP \
+		--cpus 8
+	@echo "→ Prokka Hybrid SPAdes concluído."
