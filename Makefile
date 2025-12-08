@@ -11,6 +11,7 @@ RAW = $(PROJECT_ROOT)/raw_data
 QC_RAW_BASE = $(PROJECT_ROOT)/qc_reports
 QC_ILLUMINA = $(QC_RAW_BASE)/illumina
 QC_NANOPORE = $(QC_RAW_BASE)/nanopore
+QC_NANOPORE_CLEAN = $(QC_RAW_BASE)/nanopore_clean
 
 CLEAN_NANOPORE = $(PROJECT_ROOT)/clean_nanopore
 NANOPORE_TRIMMED = $(CLEAN_NANOPORE)/nanopore_trimmed.fastq.gz
@@ -52,6 +53,8 @@ $(QC_ILLUMINA):
 $(QC_NANOPORE):
 	mkdir -p $(QC_NANOPORE)
 
+$(QC_NANOPORE_CLEAN):
+	mkdir -p $(QC_NANOPORE_CLEAN)
 
 
 $(ASSEMBLY_DIR):
@@ -97,9 +100,9 @@ $(RESULTS_DIR):
 # =========================== 
 #       TARGETS
 # ===========================
-.PHONY: download rename_downloads qc assemble_all qc_quast qc_busco
+.PHONY: download rename_downloads qc assemble_all qc_quast qc_busco annotate
 
-all: download qc assemble_all qc_quast qc_busco
+all: download qc assemble_all qc_quast qc_busco annotate
 
 
 # =========================== 
@@ -174,7 +177,7 @@ clean_nanopore: nanopore_trim nanopore_filter
 # ===========================
 
 
-qc: qc_fastqc qc_falco_raw_nanopore qc_multiqc qc_fastq_stats_raw
+qc: qc_fastqc qc_falco_raw_nanopore qc_falco_clean_nanopore qc_multiqc qc_fastq_stats_raw
 
 
 
@@ -191,7 +194,7 @@ qc_fastqc: $(ILLUMINA_R1) $(ILLUMINA_R2) | $(QC_ILLUMINA)
 
 
 # ---------------------------
-# 2.3 FALCO (Nanopore RAW)
+# 2.3 FALCO (Nanopore)
 # ---------------------------
 qc_falco_raw_nanopore: $(NANOPORE) |$(QC_NANOPORE)
 	@echo ">>> [QC] Falco — Nanopore (RAW)..."
@@ -199,6 +202,14 @@ qc_falco_raw_nanopore: $(NANOPORE) |$(QC_NANOPORE)
 		--outdir $(QC_NANOPORE) \
 		--threads 8
 	@echo ">>> Falco RAW (Nanopore) concluído."
+
+
+qc_falco_clean_nanopore: $(NANOPORE_FILTERED) | $(QC_NANOPORE_CLEAN)
+	@echo ">>> [QC] Falco — Nanopore (CLEAN)..."
+	falco $(NANOPORE_FILTERED) \
+		--outdir $(QC_NANOPORE_CLEAN) \
+		--threads 8
+	@echo ">>> Falco CLEAN (Nanopore) concluído."
 
 
 # ---------------------------
@@ -224,7 +235,7 @@ qc_fastq_stats_raw:
 	fastq-stats $(ILLUMINA_R1) > $(QC_ILLUMINA)/illumina_R1_raw_stats.txt
 	fastq-stats $(ILLUMINA_R2) > $(QC_ILLUMINA)/illumina_R2_raw_stats.txt
 	fastq-stats $(NANOPORE)    > $(QC_NANOPORE)/nanopore_raw_stats.txt
-
+	fastq-stats $(NANOPORE_CLEAN ) > $(QC_NANOPORE_CLEAN)/nanopore_clean_stats.txt
 	@echo "→ fastq_stats RAW concluído."
 
 
