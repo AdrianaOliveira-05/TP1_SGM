@@ -3,8 +3,8 @@
 ## Trabalho 1 — Sequenciação da bactéria *Xanthomonas arboricola* pv. *juglandis*
 
 ### Autores
-- **Adriana Oliveira**
-- **Gonçalo Cruz**
+- **Adriana Oliveira** — up202307136@edu.fc.up.pt  
+- **Gonçalo Cruz** — up202304593@up.pt
 
 ### Descrição
 Este repositório contém o primeiro trabalho prático da unidade curricular de Sequenciação de Genomas e Metagenómica (SGM).  
@@ -36,7 +36,7 @@ projeto/
 └── annotation/ → anotação
 
 
-#### 5. Invocar o **`Makefile`**, que orquestra o pipeline completo (download → QC → limpeza nanopore → montagem → avaliação2 → anotação).
+#### 5. Invocar o **`Makefile`**, que orquestra o pipeline completo (download → QC → limpeza nanopore → montagem → avaliação → anotação).
 
 ---
 
@@ -96,7 +96,7 @@ Criado separadamente devido a incompatibilidades de versões:
 
 ### Como executar
 
-A execução demorara alguns minutos, principalmente se os pacotes não estiverem instalados. 
+A execução demora alguns minutos, principalmente se os pacotes não estiverem instalados. 
 
 1. Dar permissão de execução ao script:
 ```bash
@@ -111,7 +111,7 @@ chmod +x go.sh
         ERROR! Failed downloading bacteria database (url: https://busco-archive.ezlab.org/v3/datasets/bacteria_odb9.tar.gz),
         QUAST functionality will be limited! Exception caught: HTTP Error 404: Not Found
 
-- Durante a instalação do ambiente Conda, o QUAST tenta descarregar automaticamente as bases de dados antigas do BUSCO (odb9), que foram descontinuadas. Para resolvermos isto, adicionou-se isto no go.sh, pelo que não é preciso realizar no temrinal. Se não funcionar, pode sempre fazer o mesmo no terminal.
+- Durante a instalação do ambiente Conda, o QUAST tenta descarregar automaticamente as bases de dados antigas do BUSCO (odb9), que foram descontinuadas. Para resolvermos isto, adicionou-se isto no go.sh, pelo que não é preciso realizar no terminal. Se não funcionar, pode sempre fazer o mesmo no terminal.
 
 ```bash
 conda activate TP1_AO_GC
@@ -237,7 +237,7 @@ Os relatórios do QC2 encontram-se em: projeto/qc_reports/nanopore_clean/
 
 ### 5. Montagem do genoma
 
-O pipeline gera **quatro montagens independentes**, permitindo comparar o efeito do tipo de leitura e do pré-processamento na qualidade final do genoma reconstruído.
+O pipeline gera **cinco montagens independentes**, permitindo comparar o efeito do tipo de leitura e do pré-processamento na qualidade final do genoma reconstruído.
 
 ---
 
@@ -272,12 +272,14 @@ O pipeline gera **quatro montagens independentes**, permitindo comparar o efeito
 
 ---
 
-#### 4. Montagem híbrida (Illumina + Nanopore CLEAN) — *SPAdes híbrido*
+#### 4. Montagem híbrida (Unicycler — versão anterior)
 
-**Motivação**
-- Combina a precisão Illumina com a continuidade das leituras longas Nanopore.
-- SPAdes oferece integração híbrida estável e alinhada com o que o enunciado sugere como abordagem principal.
-- Produz scaffolds mais completos do que qualquer montagem isolada.
+A montagem híbrida com **Unicycler** combina leituras Illumina (alta precisão) com leituras Nanopore (grande continuidade), reconstruindo genomas bacterianos de forma altamente completa.  
+
+**Características principais**
+- Integra ambas as tecnologias de forma otimizada num único grafo de montagem.  
+- É particularmente eficaz para genomas circulares, como muitos genomas bacterianos.  
+- Resolve repetições e ligações ambíguas usando as leituras longas Nanopore como suporte.
 
 ---
 
@@ -325,7 +327,7 @@ qc_assembly/summary_report.txt
 
 Este relatório contém:
 - resumo do QUAST,  
-- resultados BUSCO das três montagens,  
+- resultados BUSCO das cinco montagens,  
 - comparação objetiva entre abordagens.
 
 ---
