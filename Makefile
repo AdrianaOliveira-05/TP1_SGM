@@ -235,7 +235,7 @@ qc_fastq_stats_raw:
 	fastq-stats $(ILLUMINA_R1) > $(QC_ILLUMINA)/illumina_R1_raw_stats.txt
 	fastq-stats $(ILLUMINA_R2) > $(QC_ILLUMINA)/illumina_R2_raw_stats.txt
 	fastq-stats $(NANOPORE)    > $(QC_NANOPORE)/nanopore_raw_stats.txt
-	fastq-stats $(NANOPORE_CLEAN) > $(QC_NANOPORE_CLEAN)/nanopore_clean_stats.txt
+	fastq-stats $(NANOPORE_FILTERED) > $(QC_NANOPORE_CLEAN)/nanopore_clean_stats.txt
 	@echo "→ fastq_stats RAW concluído."
 
 
