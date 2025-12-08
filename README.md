@@ -25,7 +25,7 @@ projeto/
 
 ├── raw_data/ → dados originais (Illumina e Nanopore)
 
-├── cleaned_data/ → dados após controlo de qualidade
+├── clean_nanopore/ → dados nanopore limpos
 
 ├── qc_reports/ → relatórios de qualidade após QC (Quality Control)
 
@@ -33,10 +33,10 @@ projeto/
 
 ├── whole_genome/ → genomas montados
 
-└── comparison_results/ → resultados de comparação e anotação
+└── annotation/ → anotação
 
 
-#### 5. Invocar o **`Makefile`**, que orquestra o pipeline completo (download → QC → avaliação1 → montagem → avaliação2 → anotação → sumário final).
+#### 5. Invocar o **`Makefile`**, que orquestra o pipeline completo (download → QC → limpeza nanopore → montagem → avaliação2 → anotação).
 
 ---
 
