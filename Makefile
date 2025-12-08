@@ -111,19 +111,19 @@ all: download qc assemble_all qc_quast qc_busco annotate
 ILLUMINA_R1_URL = ftp://ftp.sra.ebi.ac.uk/vol1/fastq/ERR276/001/ERR2767971/ERR2767971_1.fastq.gz
 ILLUMINA_R2_URL = ftp://ftp.sra.ebi.ac.uk/vol1/fastq/ERR276/001/ERR2767971/ERR2767971_2.fastq.gz
 NANOPORE_URL = ftp://ftp.sra.ebi.ac.uk/vol1/fastq/ERR435/001/ERR4352271/ERR4352271_1.fastq.gz
-REFERENCIA = https://www.ebi.ac.uk/ena/browser/api/fasta/GCA_903989475.2?download=true&gzip=true 
+REFERENCIA = "https://www.ebi.ac.uk/ena/browser/api/fasta/GCA_903989475.2?download=true&gzip=true" 
 
 
-download:
+download: | $(RAW)
 	# illumina
-#	cd $(RAW) && wget -nc $(ILLUMINA_R1_URL) -O illumina_R1.fastq.gz
-#        cd $(RAW) && wget -nc $(ILLUMINA_R2_URL) -O illumina_R2.fastq.gz
+	cd $(RAW) && [ -f illumina_R1.fastq.gz ] || wget $(ILLUMINA_R1_URL) -O illumina_R1.fastq.gz
+	cd $(RAW) && [ -f illumina_R2.fastq.gz ] || wget $(ILLUMINA_R2_URL) -O illumina_R2.fastq.gz
 
 	# nanopore
-#	cd $(RAW) && wget -nc $(NANOPORE_URL) -O nanopore.fastq.gz
+	cd $(RAW) && [ -f nanopore.fastq.gz ] || wget $(NANOPORE_URL) -O nanopore.fastq.gz
 
 	# referencia
-#	cd $(RAW) && wget -nc $(REFERENCIA) -O refseq.fastq.gz
+	cd $(RAW) && [ -f refseq.fasta.gz ] || wget $(REFERENCIA) -O refseq.fasta.gz
 
 
 
@@ -151,6 +151,9 @@ rename_downloads:
 # ===========================
 #    LIMPEZA NANOPORE
 # ===========================
+
+$(NANOPORE_TRIMMED): nanopore_trim
+$(NANOPORE_FILTERED): nanopore_filter
 
 nanopore_trim: $(NANOPORE) | $(CLEAN_NANOPORE)
 	cutadapt \
