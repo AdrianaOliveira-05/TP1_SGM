@@ -13,8 +13,13 @@ dependencies:
 
   # Qualidade dos dados (QC)
   - fastqc
-  - fastp
   - multiqc
+  - ea-utils
+  - fastp
+  - cutadapt
+  - seqtk=1.4
+  - nanofilt=2.8
+  - falco=1.2.1
 
   # Montagem
   - spades
