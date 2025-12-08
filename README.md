@@ -259,6 +259,51 @@ Este relatório contém:
 
 ---
 
+
+### Funcionalidades específicas implementadas no projeto
+
+Além da execução padrão das ferramentas bioinformáticas, o projeto inclui um conjunto de funcionalidades implementadas manualmente no `Makefile` que reforçam a organização, a robustez e a reprodutibilidade da análise.
+
+#### • Criação automática e estruturada de diretórios
+O Makefile cria todos os diretórios necessários antes de cada tarefa (raw, clean, QC, trimmed, filtrados, etc.).  
+Isto garante que o pipeline pode ser executado num sistema vazio, sem passos manuais, reduzindo falhas por inexistência de caminhos.
+
+#### • Limpeza Illumina otimizada (fastp executado apenas uma vez)
+A limpeza paired-end é feita com uma única chamada a `fastp`, que gera simultaneamente os ficheiros limpos R1 e R2 e os relatórios associados.  
+Foi ainda implementada uma regra "falsa" para impedir a execução duplicada do fastp, garantindo eficiência e consistência entre os pares.
+
+#### • Pipeline Nanopore em duas etapas complementares: Cutadapt → NanoFilt
+A limpeza das leituras longas foi separada em dois passos distintos:
+- **Cutadapt** remove caudas, poliações e artefactos frequentes em Nanopore.  
+- **NanoFilt** aplica filtragem suave baseada em qualidade e comprimento.  
+
+Esta abordagem modular dá mais controlo sobre o processo e evita filtragens demasiado agressivas, mantendo a representação do genoma.
+
+#### • Controlo de qualidade completo antes e depois da limpeza
+O pipeline inclui dois níveis de QC:
+- **QC1 (raw):** FastQC, Falco, fastq-stats, MultiQC  
+- **QC2 (cleaned):** FastQC, Falco, fastq-stats, MultiQC  
+
+Ao separar QC inicial e final, o utilizador consegue verificar objetivamente o impacto da limpeza e validar a melhoria real da qualidade das leituras.
+
+#### • Integração de métricas complementares através de ferramentas diferentes
+A utilização simultânea de FastQC, Falco, fastq-stats e MultiQC foi programada de forma coordenada.  
+Isto fornece:
+- métricas visuais e estatísticas,  
+- comparação entre Illumina e Nanopore,  
+- integração automática de relatórios,  
+- separação clara entre dados brutos e limpos.
+
+#### • Ambiente BUSCO isolado para garantir estabilidade
+Devido a incompatibilidades frequentes na instalação do BUSCO, o pipeline cria e utiliza um ambiente Conda exclusivo (`BUSCO10_ENV`), assegurando que a ferramenta funciona independentemente das restantes dependências do projeto.
+
+Estas funcionalidades tornam o pipeline mais estável, reprodutível e acessível a qualquer utilizador, sem necessidade de configuração manual adicional.
+
+
+---
+
+
+
 ### Conclusão
 
 Executar `./go.sh` permite reproduzir **todo o pipeline**, desde o download dos dados, QC, limpeza e montagem, até à avaliação e criação do relatório final.  
